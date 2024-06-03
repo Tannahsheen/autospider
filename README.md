@@ -9,8 +9,11 @@ this should do everything you need.
 running:
 make an input ip list that contains your ip ranges.
 
-run autospider.sh
+run 
+bash autospider.sh
 it will prompt you for your ip list. This utility should find all of your open smb shares and output them into a list. 
 
-from here run autospider2.sh, when it prompts for an input file type spider-hosts.txt
+from here run  
+bash autospider2.sh
+
 this will begin spidering all SMB shares that it can access, downloading sensitive data. 
