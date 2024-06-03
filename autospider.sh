@@ -1,9 +1,7 @@
 #!/bin/bash
 
-# Prompt for the input file containing IP ranges
 read -p "Enter the path to the file containing IP ranges: " IP_FILE
 
-# Check if the file exists
 if [ ! -f "$IP_FILE" ]; then
     echo "File not found: $IP_FILE"
     exit 1
