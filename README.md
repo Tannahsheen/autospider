@@ -13,6 +13,8 @@ sudo chmod +x install_autospider.sh
 sudo bash install_autospider.sh
 ```
 
+
+Usage
 ``` bash
 ./autospider.sh -i <ip_range_file> [-l <loot_dir>] [-e <extensions>] [-k <A|B|C|custom>]
 ```
