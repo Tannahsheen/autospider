@@ -1,6 +1,6 @@
 # autospider
 
-autospider, A Bash script to find and loot open SMB shares using crackmapexec and MANSPIDER.
+A Bash script to find and loot open SMB shares using crackmapexec and MANSPIDER.
  this is just a script to automate finding smb shares and spidering a little quicker. 
 
 
