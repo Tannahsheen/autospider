@@ -1,19 +1,37 @@
 # autospider
-autospider, this is just a script to automate finding smb shares and spidering a little quicker. 
 
-install:
-sudo bash install_spider.sh
+autospider, A Bash script to find and loot open SMB shares using crackmapexec and MANSPIDER.
+ this is just a script to automate finding smb shares and spidering a little quicker. 
 
-this should do everything you need. 
 
-running:
-make an input ip list that contains your ip ranges.
 
-run 
-bash autospider.sh
-it will prompt you for your ip list. This utility should find all of your open smb shares and output them into a list. 
+Install
+```bash
+git clone https://github.com/yourusername/autospider.git
+cd autospider
+sudo chmod +x install_autospider.sh
+sudo bash install_autospider.sh
+```
 
-from here run  
-bash autospider2.sh
+``` bash
+./autospider.sh -i <ip_range_file> [-l <loot_dir>] [-e <extensions>] [-k <A|B|C|custom>]
+-i: IP range file (required)
+-l: Loot directory (default: ~/manspider_loot)
+-e: File extensions (default: txt doc docx xls ...)
+-k: Keywords: A (standard), B (banking), C (education), or custom
+-h: Help
+Examples
+./autospider.sh -i ips.txt
+./autospider.sh -i ips.txt -k B -l /tmp/loot
+Output
+Loot goes to the specified directory (or ~/manspider_loot).
+```
 
-this will begin spidering all SMB shares that it can access, downloading sensitive data. 
+
+
+
+
+
+
+License
+MIT
